@@ -1,0 +1,115 @@
+name: CI/CD Pipeline - E-Commerce Microservices
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REGISTRY: 708352294456.dkr.ecr.ap-south-1.amazonaws.com
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # ─── Step 1: Checkout Code ───
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # ─── Step 2: Setup Java 17 ───
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # ─── Step 3: Build All Services ───
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      # ─── Step 4: Configure AWS ───
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ─── Step 5: Login to ECR ───
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # ─── Step 6: Build and Push Docker Images ───
+      - name: Build and push service-registry
+        run: |
+          docker build -t $ECR_REGISTRY/ecommerce/service-registry:latest ./service-registry
+          docker push $ECR_REGISTRY/ecommerce/service-registry:latest
+
+      - name: Build and push api-gateway
+        run: |
+          docker build -t $ECR_REGISTRY/ecommerce/api-gateway:latest ./api-gateway
+          docker push $ECR_REGISTRY/ecommerce/api-gateway:latest
+
+      - name: Build and push user-service
+        run: |
+          docker build -t $ECR_REGISTRY/ecommerce/user-service:latest ./user-service
+          docker push $ECR_REGISTRY/ecommerce/user-service:latest
+
+      - name: Build and push product-service
+        run: |
+          docker build -t $ECR_REGISTRY/ecommerce/product-service:latest ./product-service
+          docker push $ECR_REGISTRY/ecommerce/product-service:latest
+
+      - name: Build and push order-service
+        run: |
+          docker build -t $ECR_REGISTRY/ecommerce/order-service:latest ./order-service
+          docker push $ECR_REGISTRY/ecommerce/order-service:latest
+
+      # ─── Step 7: Deploy to ECS ───
+      - name: Deploy service-registry
+        run: |
+          aws ecs update-service \
+            --cluster ecommerce-cluster \
+            --service service-registry \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy api-gateway
+        run: |
+          aws ecs update-service \
+            --cluster ecommerce-cluster \
+            --service api-gateway \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy user-service
+        run: |
+          aws ecs update-service \
+            --cluster ecommerce-cluster \
+            --service user-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy product-service
+        run: |
+          aws ecs update-service \
+            --cluster ecommerce-cluster \
+            --service product-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy order-service
+        run: |
+          aws ecs update-service \
+            --cluster ecommerce-cluster \
+            --service order-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deployment Successful
+        run: echo "✅ All services deployed to AWS ECS!"
