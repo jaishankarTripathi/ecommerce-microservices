@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>user-service</artifactId>
-<!--    <n>User Service</n>-->
 
     <dependencies>
         <dependency>

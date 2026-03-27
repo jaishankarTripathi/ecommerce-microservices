@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>product-service</artifactId>
-    <n>Product Service</n>
 
     <dependencies>
         <dependency>

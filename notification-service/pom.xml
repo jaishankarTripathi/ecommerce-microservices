@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>notification-service</artifactId>
-    <n>Notification Service</n>
 
     <dependencies>
         <dependency>

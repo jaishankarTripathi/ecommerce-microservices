@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>api-gateway</artifactId>
-    <n>API Gateway</n>
 
     <dependencies>
         <dependency>
