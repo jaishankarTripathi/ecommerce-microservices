@@ -1,0 +1,272 @@
+### E-Commerce Microservices - Sample API Requests
+### Use with IntelliJ HTTP Client, VS Code REST Client, or convert to Postman
+
+@baseUrl = http://localhost:8080
+
+# =====================================================
+# USER SERVICE
+# =====================================================
+
+### Register a new user
+POST {{baseUrl}}/api/users/register
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "phone": "+1234567890",
+  "address": "123 Main St, New York, NY 10001"
+}
+
+###
+
+### Login
+POST {{baseUrl}}/api/users/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+
+###
+
+### Get user by ID
+GET {{baseUrl}}/api/users/1
+
+###
+
+### Get all users
+GET {{baseUrl}}/api/users
+
+###
+
+### Update user
+PUT {{baseUrl}}/api/users/1
+Content-Type: application/json
+
+{
+  "firstName": "Johnny",
+  "lastName": "Doe",
+  "phone": "+9876543210",
+  "address": "456 Oak Ave, Boston, MA 02101"
+}
+
+# =====================================================
+# PRODUCT SERVICE
+# =====================================================
+
+### Create a product
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "iPhone 15 Pro Max",
+  "description": "Latest Apple flagship with A17 Pro chip and titanium design",
+  "price": 1199.99,
+  "stockQuantity": 100,
+  "category": "Electronics",
+  "imageUrl": "https://example.com/iphone15promax.jpg"
+}
+
+###
+
+### Get all products (paginated)
+GET {{baseUrl}}/api/products?page=0&size=5&sortBy=price&sortDir=asc
+
+###
+
+### Get product by ID
+GET {{baseUrl}}/api/products/1
+
+###
+
+### Search products
+GET {{baseUrl}}/api/products/search?name=iphone&category=Electronics&minPrice=500&maxPrice=2000
+
+###
+
+### Get products by category
+GET {{baseUrl}}/api/products/category/Electronics
+
+###
+
+### Get all categories
+GET {{baseUrl}}/api/products/categories
+
+###
+
+### Bulk fetch products
+GET {{baseUrl}}/api/products/bulk?ids=1,2,3
+
+###
+
+### Update product
+PUT {{baseUrl}}/api/products/1
+Content-Type: application/json
+
+{
+  "name": "iPhone 15 Pro Max",
+  "description": "Updated description",
+  "price": 1099.99,
+  "stockQuantity": 75,
+  "category": "Electronics",
+  "imageUrl": "https://example.com/iphone15.jpg"
+}
+
+###
+
+### Update product stock (ADD)
+PATCH {{baseUrl}}/api/products/1/stock
+Content-Type: application/json
+
+{
+  "quantity": 50,
+  "operation": "ADD"
+}
+
+###
+
+### Update product stock (SUBTRACT)
+PATCH {{baseUrl}}/api/products/1/stock
+Content-Type: application/json
+
+{
+  "quantity": 5,
+  "operation": "SUBTRACT"
+}
+
+###
+
+### Soft delete product
+DELETE {{baseUrl}}/api/products/1
+
+# =====================================================
+# ORDER SERVICE
+# =====================================================
+
+### Place a new order
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "items": [
+    {
+      "productId": 1,
+      "quantity": 2
+    },
+    {
+      "productId": 3,
+      "quantity": 1
+    }
+  ],
+  "shippingAddress": "123 Main St, New York, NY 10001",
+  "paymentMethod": "CREDIT_CARD",
+  "notes": "Please leave at the door"
+}
+
+###
+
+### Get order by ID
+GET {{baseUrl}}/api/orders/1
+
+###
+
+### Get order by order number
+GET {{baseUrl}}/api/orders/number/ORD-ABC12345
+
+###
+
+### Get all orders for a user
+GET {{baseUrl}}/api/orders/user/1
+
+###
+
+### Get all orders (admin)
+GET {{baseUrl}}/api/orders?page=0&size=10
+
+###
+
+### Get orders by status
+GET {{baseUrl}}/api/orders/status/PENDING
+
+###
+
+### Update order status — CONFIRM
+PATCH {{baseUrl}}/api/orders/1/status
+Content-Type: application/json
+
+{
+  "status": "CONFIRMED"
+}
+
+###
+
+### Update order status — SHIP
+PATCH {{baseUrl}}/api/orders/1/status
+Content-Type: application/json
+
+{
+  "status": "SHIPPED"
+}
+
+###
+
+### Cancel an order
+PATCH {{baseUrl}}/api/orders/1/cancel
+
+# =====================================================
+# NOTIFICATION SERVICE
+# =====================================================
+
+### Send welcome email
+POST {{baseUrl}}/api/notifications/welcome?email=john@example.com&username=johndoe
+
+###
+
+### Send order placed notification
+POST {{baseUrl}}/api/notifications/order-placed?email=john@example.com&orderNumber=ORD-ABC12345&total=2499.97
+
+###
+
+### Send order status notification
+POST {{baseUrl}}/api/notifications/order-status?email=john@example.com&orderNumber=ORD-ABC12345&status=SHIPPED
+
+###
+
+### Send custom notification
+POST {{baseUrl}}/api/notifications/send
+Content-Type: application/json
+
+{
+  "to": "john@example.com",
+  "subject": "Special Offer Just for You!",
+  "body": "Get 20% off your next order with code SAVE20",
+  "type": "ORDER_PLACED"
+}
+
+# =====================================================
+# HEALTH CHECKS
+# =====================================================
+
+### Eureka Dashboard
+GET http://localhost:8761
+
+### Gateway Health
+GET {{baseUrl}}/actuator/health
+
+### User Service Health (direct)
+GET http://localhost:8082/api/users/health
+
+### Product Service Health (direct)
+GET http://localhost:8081/actuator/health
+
+### Order Service Health (direct, includes circuit breaker)
+GET http://localhost:8083/actuator/health
+
+### Circuit Breaker details
+GET http://localhost:8083/actuator/circuitbreakers
