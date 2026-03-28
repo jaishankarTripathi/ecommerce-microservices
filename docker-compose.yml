@@ -5,10 +5,13 @@ services:
   # ============================================================
   # Service Registry (Eureka Server)
   # ============================================================
+#  service-registry:
+#    build:
+#      context: ./service-registry
   service-registry:
     build:
-      context: ./service-registry
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: service-registry/Dockerfile
     container_name: service-registry
     ports:
       - "8761:8761"
