@@ -47,27 +47,27 @@ jobs:
       # ─── Step 6: Build and Push Docker Images ───
       - name: Build and push service-registry
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/service-registry:latest ./service-registry
+          docker build -t $ECR_REGISTRY/ecommerce/service-registry:latest -f service-registry/Dockerfile .
           docker push $ECR_REGISTRY/ecommerce/service-registry:latest
 
       - name: Build and push api-gateway
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/api-gateway:latest ./api-gateway
+          docker build -t $ECR_REGISTRY/ecommerce/user-service:latest -f user-service/Dockerfile .     
           docker push $ECR_REGISTRY/ecommerce/api-gateway:latest
 
       - name: Build and push user-service
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/user-service:latest ./user-service
+          docker build -t $ECR_REGISTRY/ecommerce/user-service:latest -f user-service/Dockerfile .     
           docker push $ECR_REGISTRY/ecommerce/user-service:latest
 
       - name: Build and push product-service
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/product-service:latest ./product-service
+          docker build -t $ECR_REGISTRY/ecommerce/product-service:latest -f product-service/Dockerfile .     
           docker push $ECR_REGISTRY/ecommerce/product-service:latest
 
       - name: Build and push order-service
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/order-service:latest ./order-service
+          docker build -t $ECR_REGISTRY/ecommerce/order-service:latest -f order-service/Dockerfile .     
           docker push $ECR_REGISTRY/ecommerce/order-service:latest
 
       # ─── Step 7: Deploy to ECS ───
