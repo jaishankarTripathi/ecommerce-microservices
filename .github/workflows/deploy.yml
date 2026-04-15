@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - E-Commerce Microservices
+name: CI/CD - Build, Push and Deploy to EKS
 
 on:
   push:
@@ -7,19 +7,21 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REGISTRY: 708352294456.dkr.ecr.ap-south-1.amazonaws.com
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com
+  EKS_CLUSTER: ecommerce-cluster
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy
     runs-on: ubuntu-latest
 
     steps:
-      # ─── Step 1: Checkout Code ───
+
+      # ── Step 1: Checkout Code ───────────────────────
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # ─── Step 2: Setup Java 17 ───
+      # ── Step 2: Setup Java 17 ───────────────────────
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -27,11 +29,14 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # ─── Step 3: Build All Services ───
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
+      # ── Step 3: Build All Maven JARs ────────────────
+      - name: Build all services with Maven
+        run: |
+          cd ecommerce-microservices
+          mvn clean package -DskipTests
+          echo "✅ Maven build completed"
 
-      # ─── Step 4: Configure AWS ───
+      # ── Step 4: Configure AWS ───────────────────────
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -39,77 +44,236 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # ─── Step 5: Login to ECR ───
+      # ── Step 5: Login to ECR ─────────────────────────
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      # ─── Step 6: Build and Push Docker Images ───
+      # ── Step 6: Build and Push service-registry ──────
       - name: Build and push service-registry
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/service-registry:latest -f service-registry/Dockerfile .
-          docker push $ECR_REGISTRY/ecommerce/service-registry:latest
+          echo "Building service-registry..."
+          docker build \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/service-registry:latest \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/service-registry:${{ github.sha }} \
+            ./ecommerce-microservices/service-registry
+          
+          echo "Pushing service-registry..."
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/service-registry:latest
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/service-registry:${{ github.sha }}
+          echo "✅ service-registry pushed"
 
+      # ── Step 7: Build and Push api-gateway ───────────
       - name: Build and push api-gateway
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/user-service:latest -f user-service/Dockerfile .     
-          docker push $ECR_REGISTRY/ecommerce/api-gateway:latest
+          echo "Building api-gateway..."
+          docker build \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:latest \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:${{ github.sha }} \
+            ./ecommerce-microservices/api-gateway
+          
+          echo "Pushing api-gateway..."
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:latest
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:${{ github.sha }}
+          echo "✅ api-gateway pushed"
 
+      # ── Step 8: Build and Push user-service ──────────
       - name: Build and push user-service
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/user-service:latest -f user-service/Dockerfile .     
-          docker push $ECR_REGISTRY/ecommerce/user-service:latest
+          echo "Building user-service..."
+          docker build \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/user-service:latest \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/user-service:${{ github.sha }} \
+            ./ecommerce-microservices/user-service
+          
+          echo "Pushing user-service..."
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/user-service:latest
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/user-service:${{ github.sha }}
+          echo "✅ user-service pushed"
 
+      # ── Step 9: Build and Push product-service ────────
       - name: Build and push product-service
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/product-service:latest -f product-service/Dockerfile .     
-          docker push $ECR_REGISTRY/ecommerce/product-service:latest
+          echo "Building product-service..."
+          docker build \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/product-service:latest \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/product-service:${{ github.sha }} \
+            ./ecommerce-microservices/product-service
+          
+          echo "Pushing product-service..."
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/product-service:latest
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/product-service:${{ github.sha }}
+          echo "✅ product-service pushed"
 
+      # ── Step 10: Build and Push order-service ─────────
       - name: Build and push order-service
         run: |
-          docker build -t $ECR_REGISTRY/ecommerce/order-service:latest -f order-service/Dockerfile .     
-          docker push $ECR_REGISTRY/ecommerce/order-service:latest
+          echo "Building order-service..."
+          docker build \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/order-service:latest \
+            -t ${{ env.ECR_REGISTRY }}/ecommerce/order-service:${{ github.sha }} \
+            ./ecommerce-microservices/order-service
+          
+          echo "Pushing order-service..."
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/order-service:latest
+          docker push ${{ env.ECR_REGISTRY }}/ecommerce/order-service:${{ github.sha }}
+          echo "✅ order-service pushed"
 
-      # ─── Step 7: Deploy to ECS ───
-      - name: Deploy service-registry
+      # ── Step 11: Verify all images in ECR ─────────────
+      - name: Verify images in ECR
         run: |
-          aws ecs update-service \
-            --cluster ecommerce-cluster \
-            --service service-registry \
-            --force-new-deployment \
-            --region ${{ env.AWS_REGION }}
+          echo "Verifying all images exist in ECR..."
+          
+          aws ecr describe-images \
+            --repository-name ecommerce/service-registry \
+            --region ${{ env.AWS_REGION }} \
+            --query 'imageDetails[0].imageTags' \
+            --output text
+          
+          aws ecr describe-images \
+            --repository-name ecommerce/api-gateway \
+            --region ${{ env.AWS_REGION }} \
+            --query 'imageDetails[0].imageTags' \
+            --output text
+          
+          aws ecr describe-images \
+            --repository-name ecommerce/user-service \
+            --region ${{ env.AWS_REGION }} \
+            --query 'imageDetails[0].imageTags' \
+            --output text
+          
+          aws ecr describe-images \
+            --repository-name ecommerce/product-service \
+            --region ${{ env.AWS_REGION }} \
+            --query 'imageDetails[0].imageTags' \
+            --output text
+          
+          aws ecr describe-images \
+            --repository-name ecommerce/order-service \
+            --region ${{ env.AWS_REGION }} \
+            --query 'imageDetails[0].imageTags' \
+            --output text
+          
+          echo "✅ All images verified in ECR"
 
-      - name: Deploy api-gateway
+      # ── Step 12: Configure kubectl ─────────────────────
+      - name: Configure kubectl for EKS
         run: |
-          aws ecs update-service \
-            --cluster ecommerce-cluster \
-            --service api-gateway \
-            --force-new-deployment \
-            --region ${{ env.AWS_REGION }}
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER }}
+          
+          echo "✅ kubectl configured"
+          kubectl get nodes
 
-      - name: Deploy user-service
+      # ── Step 13: Deploy to EKS ─────────────────────────
+      - name: Deploy to EKS
         run: |
-          aws ecs update-service \
-            --cluster ecommerce-cluster \
-            --service user-service \
-            --force-new-deployment \
-            --region ${{ env.AWS_REGION }}
+          # Create namespace
+          kubectl apply -f \
+            ecommerce-microservices/k8s/namespace.yaml
+          
+          # Create secrets
+          kubectl apply -f \
+            ecommerce-microservices/k8s/secrets.yaml
+          
+          # Deploy in correct order
+          kubectl apply -f \
+            ecommerce-microservices/k8s/service-registry.yaml
+          
+          # Wait for service-registry to be ready
+          echo "Waiting for service-registry..."
+          kubectl rollout status \
+            deployment/service-registry \
+            -n ecommerce \
+            --timeout=120s
+          
+          kubectl apply -f \
+            ecommerce-microservices/k8s/user-service.yaml
+          kubectl apply -f \
+            ecommerce-microservices/k8s/product-service.yaml
+          kubectl apply -f \
+            ecommerce-microservices/k8s/order-service.yaml
+          kubectl apply -f \
+            ecommerce-microservices/k8s/api-gateway.yaml
+          kubectl apply -f \
+            ecommerce-microservices/k8s/hpa.yaml
+          
+          echo "✅ All manifests applied"
 
-      - name: Deploy product-service
+      # ── Step 14: Update images with new SHA ────────────
+      - name: Update deployment images
         run: |
-          aws ecs update-service \
-            --cluster ecommerce-cluster \
-            --service product-service \
-            --force-new-deployment \
-            --region ${{ env.AWS_REGION }}
+          kubectl set image \
+            deployment/service-registry \
+            service-registry=${{ env.ECR_REGISTRY }}/ecommerce/service-registry:${{ github.sha }} \
+            -n ecommerce
 
-      - name: Deploy order-service
+          kubectl set image \
+            deployment/api-gateway \
+            api-gateway=${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:${{ github.sha }} \
+            -n ecommerce
+
+          kubectl set image \
+            deployment/user-service \
+            user-service=${{ env.ECR_REGISTRY }}/ecommerce/user-service:${{ github.sha }} \
+            -n ecommerce
+
+          kubectl set image \
+            deployment/product-service \
+            product-service=${{ env.ECR_REGISTRY }}/ecommerce/product-service:${{ github.sha }} \
+            -n ecommerce
+
+          kubectl set image \
+            deployment/order-service \
+            order-service=${{ env.ECR_REGISTRY }}/ecommerce/order-service:${{ github.sha }} \
+            -n ecommerce
+
+          echo "✅ All images updated"
+
+      # ── Step 15: Wait for all rollouts ─────────────────
+      - name: Wait for deployments
         run: |
-          aws ecs update-service \
-            --cluster ecommerce-cluster \
-            --service order-service \
-            --force-new-deployment \
-            --region ${{ env.AWS_REGION }}
+          echo "Waiting for all deployments..."
+          
+          kubectl rollout status \
+            deployment/service-registry \
+            -n ecommerce --timeout=180s
+          
+          kubectl rollout status \
+            deployment/user-service \
+            -n ecommerce --timeout=180s
+          
+          kubectl rollout status \
+            deployment/product-service \
+            -n ecommerce --timeout=180s
+          
+          kubectl rollout status \
+            deployment/order-service \
+            -n ecommerce --timeout=180s
+          
+          kubectl rollout status \
+            deployment/api-gateway \
+            -n ecommerce --timeout=180s
+          
+          echo "✅ All deployments ready!"
 
-      - name: Deployment Successful
-        run: echo "✅ All services deployed to AWS ECS!"
+      # ── Step 16: Show final status ─────────────────────
+      - name: Show deployment status
+        run: |
+          echo "========== PODS =========="
+          kubectl get pods -n ecommerce
+          
+          echo "========== SERVICES =========="
+          kubectl get services -n ecommerce
+          
+          echo "========== HPA =========="
+          kubectl get hpa -n ecommerce
+          
+          echo "========== PUBLIC URL =========="
+          kubectl get service api-gateway \
+            -n ecommerce \
+            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+          
+          echo ""
+          echo "✅ Deployment Complete!"
