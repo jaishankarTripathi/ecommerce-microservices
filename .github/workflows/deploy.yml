@@ -52,20 +52,8 @@ jobs:
 
       - name: Build and push api-gateway
         run: |
-          echo "Building api-gateway..."
-          docker build \
-            -t ${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:latest \
-            -t ${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:${{ github.sha }} \
-            ./ecommerce-microservices/api-gateway
-          
-          echo "📦 Listing Docker images..."
-          docker images   # 👈 ADD THIS LINE HERE
-          
-          echo "Pushing api-gateway..."
-          docker push ${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:latest
-          docker push ${{ env.ECR_REGISTRY }}/ecommerce/api-gateway:${{ github.sha }}
-          
-          echo "✅ api-gateway pushed"
+          docker build -t $ECR_REGISTRY/ecommerce/user-service:latest -f user-service/Dockerfile .     
+          docker push $ECR_REGISTRY/ecommerce/api-gateway:latest
 
       - name: Build and push user-service
         run: |
